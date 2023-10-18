@@ -41,9 +41,8 @@ public class MouseMonitor
 
             return CallNextHookEx(_hookID, nCode, wParam, lParam);
         }
-        catch (Exception e)
+        catch (Exception)
         {
-            // Handle the exception as needed.
             throw;
         }
     }

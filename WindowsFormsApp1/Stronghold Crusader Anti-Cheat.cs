@@ -112,6 +112,10 @@ namespace WindowsFormsApp1
 
         const int SW_MINIMIZE = 6;
 
+        private void label3_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
 
