@@ -13,7 +13,7 @@ public class WebSocketService
     // Define an event for when a message is received, allowing other classes to subscribe
     public event Action<string> MessageReceived;
     public event EventHandler<Exception> ConnectionErrorOccurred;
-
+    public delegate void ConnectionErrorHandler(object sender, Exception ex);
 
     public WebSocketService()
     {
@@ -29,16 +29,6 @@ public class WebSocketService
     {
         _ = ConnectWebSocket();
     }
-    private void WebSocketService_ConnectionErrorOccurred(object sender, Exception e)
-    {
-        MessageBox.Show($"Error connecting: {e.Message}");
-    }
-
-    public delegate void ConnectionErrorHandler(object sender, Exception ex);
-    public event ConnectionErrorHandler ConnectionErrorOccurred;
-
-
-
 
     private async Task ConnectWebSocket()
     {

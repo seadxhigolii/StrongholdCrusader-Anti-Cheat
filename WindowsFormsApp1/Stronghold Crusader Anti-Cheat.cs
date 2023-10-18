@@ -49,6 +49,11 @@ namespace WindowsFormsApp1
             timer60s.Start();
         }
 
+        private void WebSocketService_ConnectionErrorOccurred(object sender, Exception e)
+        {
+            MessageBox.Show($"Error connecting: {e.Message}");
+        }
+
         private void HandleHighClickRate()
         {
             IntPtr activeWindowHandle = GetForegroundWindow();
