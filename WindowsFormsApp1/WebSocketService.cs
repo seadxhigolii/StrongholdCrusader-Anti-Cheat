@@ -34,8 +34,10 @@ public class WebSocketService
     {
         try
         {
+            //MessageBox.Show("Trying to connect!");
             webSocket = new ClientWebSocket();
-            await webSocket.ConnectAsync(new Uri("ws://echo.websocket.org"), CancellationToken.None);
+            await webSocket.ConnectAsync(new Uri("ws://shc-anti-cheat.ew.r.appspot.com"), CancellationToken.None);
+            await StartListeningForMessages();
         }
         catch (Exception ex)
         {
@@ -53,7 +55,7 @@ public class WebSocketService
             if (result.MessageType == WebSocketMessageType.Text)
             {
                 var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                MessageReceived?.Invoke(message); // Notify any subscribers about the received message
+                MessageReceived?.Invoke(message); 
             }
         }
     }

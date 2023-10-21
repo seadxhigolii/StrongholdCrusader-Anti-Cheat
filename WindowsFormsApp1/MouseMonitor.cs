@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 
 public class MouseMonitor
 {
@@ -19,12 +18,13 @@ public class MouseMonitor
 
     public MouseMonitor()
     {
-        _proc = HookCallback;
+        //_proc = HookCallback;
         _hookID = SetHook(_proc);
     }
 
     private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
+        Debug.WriteLine(DateTime.Now.Millisecond);
         try
         {
             if (nCode >= 0 && wParam == (IntPtr)WM_LBUTTONDOWN)

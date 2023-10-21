@@ -37,7 +37,6 @@ namespace WindowsFormsApp1
             webSocketService.ConnectionErrorOccurred += WebSocketService_ConnectionErrorOccurred;
             webSocketService.MessageReceived += WebSocketService_MessageReceived;
             webSocketService.StartConnection();
-
             // 10-second timer setup
             timer10s.Interval = 10000; // 10 seconds
             timer10s.Tick += Timer10s_Tick;
@@ -87,12 +86,14 @@ namespace WindowsFormsApp1
         private async void SendCpsUpdate()
         {
             string cpsUpdatePayload = "{ \"type\": \"cps_update\", \"data\": {\"exampleKey\": \"exampleValue\"} }";
+            MessageBox.Show(cpsUpdatePayload);
             await webSocketService.SendMessage(cpsUpdatePayload);
         }
 
         private async void SendGamerangerUpdate()
         {
             string gamerangerUpdatePayload = "{ \"type\": \"gameranger_update\", \"data\": {\"exampleKey\": \"exampleValue\"} }";
+            MessageBox.Show(gamerangerUpdatePayload);
             await webSocketService.SendMessage(gamerangerUpdatePayload);
         }
 
