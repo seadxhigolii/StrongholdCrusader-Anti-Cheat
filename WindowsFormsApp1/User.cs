@@ -15,6 +15,8 @@ namespace WindowsFormsApp1
     public class User
     {
         const uint PROCESS_ALL_ACCESS = 0x1F0FFF;
+        private int userID = 0;
+        public event Action UserIdSet;
 
         [DllImport("kernel32.dll")]
         public static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, int dwProcessId);
@@ -22,14 +24,17 @@ namespace WindowsFormsApp1
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, uint dwSize, out int lpNumberOfBytesRead);
 
-
-        public void ReadGameRangerUserId(Button button1, Label label3)
+        public int GetUserId()
+        {
+            return this.userID;
+        }
+        public int ReadGameRangerUserId(Button button, TextBox textBox)
         {
             var processes = Process.GetProcessesByName("GameRanger");
             if (!processes.Any())
             {
                 MessageBox.Show("GameRanger is not running.");
-                return;
+                return 0;
             }
 
             int offset = 0x2EA898;
@@ -50,12 +55,13 @@ namespace WindowsFormsApp1
                 int userID = BitConverter.ToInt32(buffer, 0);
                 if (userID != 0)
                 {
-                    button1.Text = "Connected Successfully";
-                    button1.BackColor = Color.Green;
-                    label3.Text = "User ID: " + userID;
-                    return;
+                    UserIdSet?.Invoke();
+                    button.Text = "Connected Successfully";
+                    button.BackColor = Color.Green;
+                    return userID;
                 }
             }
+            return 0;
         }
     }
 }

@@ -9,8 +9,8 @@ using System.Windows.Forms;
 public class WebSocketService
 {
     private ClientWebSocket webSocket;
+    private const int ReconnectDelayMilliseconds = 5000;
 
-    // Define an event for when a message is received, allowing other classes to subscribe
     public event Action<string> MessageReceived;
     public event EventHandler<Exception> ConnectionErrorOccurred;
     public delegate void ConnectionErrorHandler(object sender, Exception ex);
@@ -30,32 +30,50 @@ public class WebSocketService
         _ = ConnectWebSocket();
     }
 
+    public async Task StopConnection()
+    {
+        if (webSocket != null && webSocket.State == WebSocketState.Open)
+        {
+            await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal closure", CancellationToken.None);
+            webSocket.Dispose();
+        }
+    }
+
     private async Task ConnectWebSocket()
     {
         try
         {
-            //MessageBox.Show("Trying to connect!");
             webSocket = new ClientWebSocket();
-            await webSocket.ConnectAsync(new Uri("ws://shc-anti-cheat.ew.r.appspot.com"), CancellationToken.None);
+            await webSocket.ConnectAsync(new Uri("ws://shc-ac-backend.onrender.com"), CancellationToken.None);
             await StartListeningForMessages();
         }
         catch (Exception ex)
         {
             RaiseConnectionError(ex);
+            await Task.Delay(ReconnectDelayMilliseconds); // Wait before attempting to reconnect
+            _ = ConnectWebSocket(); // Attempt to reconnect
         }
     }
 
     public async Task StartListeningForMessages()
     {
         var buffer = new byte[1024];
-        while (webSocket.State == WebSocketState.Open)
+        while (true)
         {
-            var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-
-            if (result.MessageType == WebSocketMessageType.Text)
+            try
             {
-                var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                MessageReceived?.Invoke(message); 
+                var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+
+                if (result.MessageType == WebSocketMessageType.Text)
+                {
+                    var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                    MessageReceived?.Invoke(message);
+                }
+            }
+            catch (WebSocketException)
+            {
+                await Task.Delay(ReconnectDelayMilliseconds);
+                _ = ConnectWebSocket();
             }
         }
     }

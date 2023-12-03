@@ -36,6 +36,9 @@
     <ApplicationIcon>5f1db7a13730fea2764ea1c0a3de2939.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
@@ -90,6 +93,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Constants\Error Codes.cs" />
+    <Compile Include="Game.cs" />
+    <Compile Include="MemoryReader.cs" />
+    <Compile Include="Models\Base\BaseClientPayload.cs" />
+    <Compile Include="Models\Client\ClientAuthPayload.cs" />
+    <Compile Include="Models\Client\ClientGamerangerStatusPayload.cs" />
+    <Compile Include="Models\CurrentDate.cs" />
+    <Compile Include="Models\Granary.cs" />
+    <Compile Include="Models\Leaderboard.cs" />
+    <Compile Include="Models\Population.cs" />
     <Compile Include="MouseMonitor.cs" />
     <Compile Include="Stronghold Crusader Anti-Cheat.cs">
       <SubType>Form</SubType>
