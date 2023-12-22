@@ -33,7 +33,7 @@ namespace WindowsFormsApp1
             var processes = Process.GetProcessesByName("GameRanger");
             if (!processes.Any())
             {
-                MessageBox.Show("GameRanger is not running.");
+                //MessageBox.Show("GameRanger is not running.");
                 return 0;
             }
 
@@ -52,12 +52,13 @@ namespace WindowsFormsApp1
                     continue;
                 }
 
-                int userID = BitConverter.ToInt32(buffer, 0);
+                this.userID = BitConverter.ToInt32(buffer, 0);
                 if (userID != 0)
                 {
+                    button.Text = "Connecting...";
+                    button.BackColor = Color.Gray;
+                    button.Enabled = false;
                     UserIdSet?.Invoke();
-                    button.Text = "Connected Successfully";
-                    button.BackColor = Color.Green;
                     return userID;
                 }
             }

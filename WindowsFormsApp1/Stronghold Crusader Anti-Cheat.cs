@@ -9,6 +9,8 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.WebSockets;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -35,12 +37,55 @@ namespace WindowsFormsApp1
         public Population population;
         public Leaderboard leaderboard;
         private System.Timers.Timer checkGameRangerTimer;
+        private System.Timers.Timer checkGameRangerTimer2;
         private int statusChangeCounter = 0;
         private int openStatusChangeCounter = 0;
         private int closeStatusChangeCounter = 0;
         private bool? lastStatus = null;
         private int userId = 0;
         public System.Timers.Timer timeperActionTimer;
+        public int isFactualCounter = 0;
+        public bool authenticationFinished = false;
+        int timePerAction = 0;
+        private string[] motivationalSentenceList = {
+            "You're All Set for Fair Play!",
+            "Play Fair, Play Hard!",
+            "Ready for Cheat-Free Gaming!",
+            "Enjoy Your Fair Gaming Journey!",
+            "You're in the Arena of Integrity!",
+            "Ready for Action? Fair Challenges Await!",
+            "Join the League of Honest Heroes!",
+            "Your Fair Play Adventure Starts Here!",
+            "Step into the World of Fair Gaming!",
+            "Honor in Play, Pride in Performance!",
+            "Experience the Thrill of Gaming!",
+            "Fair Play, Fair Victory!",
+            "Let's Make History!",
+            "Your Path to the Respect!",
+            "To the Crusade for Integrity in Gaming",
+            "Stand Tall Amongst Gamers Who Value Honor!",
+            "Dive into the Top Gaming Experience",
+            "Where Skill Reigns Supreme",
+            "Elevate Your Game with Fair Play!",
+            "In the Arena of Fairness!",
+            "Celebrate the Joy of Gaming with Honor!",
+        };
+        private string[] welcomeSentenceList = {
+            "Welcome Challenger,",
+            "Greetings Gamer,",
+            "Hello Champ,",
+            "Salutations Warrior,",
+            "Welcome to the Battle,",
+            "Hi Competitor,",
+            "Game On,",
+            "Hello Adventurer,",
+        };
+
+        int welcomeIndex = 0;
+        int motivationalIndex = 0;
+        string welcomeSentence = "";
+        string motivationalSentence = "";
+        private Random random = new Random();
 
         public Form1()
         {
@@ -49,18 +94,50 @@ namespace WindowsFormsApp1
             user = new User();
             user.UserIdSet += InitializeAfterUserIdSet;
 
+
+            //var procList = Process.GetProcesses().Where(process => process.ProcessName.Contains("Crusader"));
+            //var path = "";
+            //foreach (var process in procList)
+            //{
+            //    path =Path.GetDirectoryName(process.MainModule.FileName);
+            //    MessageBox.Show(path);
+            //}
+
+            //using (var md5 = MD5.Create())
+            //{
+            //    using (var stream = File.OpenRead(path + "\\Stronghold Crusader.exe"))
+            //    {
+            //        MessageBox.Show(BitConverter.ToString(md5.ComputeHash(stream)).Replace("-", "").ToLower());
+            //    }
+            //}
+
+
+
+
+
+            welcomeIndex = random.Next(welcomeSentenceList.Length);
+            motivationalIndex = random.Next(motivationalSentenceList.Length);
+
+            // Select the sentences
+            welcomeSentence = welcomeSentenceList[welcomeIndex];
+            motivationalSentence = motivationalSentenceList[motivationalIndex];
+
             mouseMonitor = new MouseMonitor();
+
+           
+
             mouseMonitor.HighClickRateDetected += HandleHighClickRate;
             this.FormClosing += Form1_FormClosing;
         }
 
-        private void InitializeAfterUserIdSet()
+        private async void InitializeAfterUserIdSet()
         {
             webSocketService = new WebSocketService();
+            var userId = this.user.GetUserId();
+            FirstAuthentication authenticationFirstPayload = await SendAuthPayload(userId);
+            webSocketService.StartConnection(authenticationFirstPayload);
             webSocketService.ConnectionErrorOccurred += WebSocketService_ConnectionErrorOccurred;
             webSocketService.MessageReceived += WebSocketService_MessageReceived;
-            webSocketService.StartConnection();
-
             timer1s.Interval = 1000;
             timer1s.Tick += Timer1s_Tick;
             timer1s.Start();
@@ -94,6 +171,7 @@ namespace WindowsFormsApp1
         {
             try
             {
+                MessageBox.Show($"MessageReceived: {message}");
                 var payload = DeserializePayload(message);
                 ProcessPayload(payload);
             }
@@ -101,7 +179,6 @@ namespace WindowsFormsApp1
             {
                 MessageBox.Show($"Error processing message: {ex.Message}");
             }
-            MessageBox.Show($"Echoed: {message}");
         }
 
         private void ProcessPayload(BaseClientPayload payload)
@@ -109,10 +186,16 @@ namespace WindowsFormsApp1
             switch (payload)
             {
                 case ClientAuthPayload authPayload:
-                    HandleClientAuthStatus(authPayload);
+                    HandleClientAuthRequiredStatus(authPayload);
                     break;
                 case ClientGamerangerStatusPayload gamerangerStatusPayload:
                     HandleClientGameRangerStatus(gamerangerStatusPayload);
+                    break;
+                case ClientAuthCompletePayload clientAuthCompletePayload:
+                    HandleClientAuthComplete(clientAuthCompletePayload);
+                    break;
+                case ClientAuthUpdatePayload clientAuthUpdatePayload:
+                    HandleClientAuthUpdate(clientAuthUpdatePayload);
                     break;
                 default:
                     MessageBox.Show("Unknown payload type.");
@@ -120,45 +203,127 @@ namespace WindowsFormsApp1
             }
         }
 
-        
-
-        private void MysticalTest()
-        {
-
-        }
-
         private async void HandleClientGameRangerStatus(ClientGamerangerStatusPayload gamerangerStatusPayload)
         {
             this.Invoke(new Action(() =>
             {
+                //MessageBox.Show("isFactual: " + gamerangerStatusPayload.IsFactual.ToString());
                 if (gamerangerStatusPayload.IsFactual)
                 {
-                    panel1.Visible = true;
-                    panel2.Visible = false;
-                    panel3.Visible = false;
                     timeperActionTimer.Start();
-                }
-                else
-                {
-                    panel1.Visible = false;
-                    panel2.Visible = true;
-                    panel3.Visible = false;
                 }
             }));
         }
 
-
-        private void HandleClientAuthStatus(ClientAuthPayload authPayload)
+        private async void HandleClientAuthComplete(ClientAuthCompletePayload clientAuthCompletePayload)
         {
-            this.timeperActionTimer = new System.Timers.Timer(authPayload.TimeLimitPerAttempt * 1000);
-            this.timeperActionTimer.Elapsed += (sender, e) => CheckIfAuthFailed();
-            this.timeperActionTimer.Start();
-            this.checkGameRangerTimer = new System.Timers.Timer(500);
-            this.checkGameRangerTimer.Elapsed += (sender, e) => CheckGameRangerStatus(authPayload.RequiredAttempts);
-            this.checkGameRangerTimer.Start();
+            Action updateUI = () =>
+            {
+                //MessageBox.Show("Authentication Successful!");
+                this.tokenPanel.Visible = false;
+                this.openClosePanel.Visible = false;
+                this.waitPanel.Visible = false;
+                this.textBox1.Text = "";
+                this.label3.Visible = false;
+                this.button1.Visible = false;
+                this.label2.Visible = false;
+                this.button2.Visible = false;
+                this.label7.Text = welcomeSentence;
+                this.label8.Text = motivationalSentence;
+                this.label7.Visible = true;
+                this.label8.Visible = true;
+                this.pictureBox1.Visible = true;
+                this.label9.Visible = true;
+                this.label9.Text = "Conntected to ID: " + this.userId.ToString();
+                this.button2.BackColor = System.Drawing.ColorTranslator.FromHtml("#ff8000");
+            };
+            if (this.InvokeRequired)
+            {
+                this.Invoke(updateUI);
+            }
+            else
+            {
+                updateUI();
+            }
         }
 
-        private async void CheckGameRangerStatus(int requiredAttempts)
+        private async void HandleClientAuthUpdate(ClientAuthUpdatePayload clientAuthUpdatePayload)
+        {
+            if (authenticationFinished == false)
+            {
+                this.timeperActionTimer = new System.Timers.Timer(timePerAction * 1000);
+                this.timeperActionTimer.Elapsed += (sender, e) => CheckIfAuthFailed();
+                this.timeperActionTimer.Start();
+                this.checkGameRangerTimer2 = new System.Timers.Timer(500);
+                this.checkGameRangerTimer2.Elapsed += (sender, e) => CheckGameRangerStatus2(clientAuthUpdatePayload);
+                this.checkGameRangerTimer2.Start();
+            }
+        }
+
+        private void HandleClientAuthRequiredStatus(ClientAuthPayload authPayload)
+        {
+            if(authenticationFinished == false)
+            {
+                this.timePerAction = authPayload.TimeLimitPerAttempt;
+                this.timeperActionTimer = new System.Timers.Timer(timePerAction * 1000);
+                this.timeperActionTimer.Elapsed += (sender, e) => CheckIfAuthFailed();
+                this.timeperActionTimer.Start();
+                this.checkGameRangerTimer = new System.Timers.Timer(500);
+                this.checkGameRangerTimer.Elapsed += (sender, e) => CheckGameRangerStatus();
+                this.checkGameRangerTimer.Start();
+            }
+        
+        }
+
+        private async void CheckGameRangerStatus()
+        {
+            var gameRangerProcesses = Process.GetProcessesByName("GameRanger");
+            bool currentStatus = gameRangerProcesses.Length > 0;
+
+            if (lastStatus == null || currentStatus != lastStatus)
+            {
+                timeperActionTimer.Stop();
+                checkGameRangerTimer.Stop();
+
+                lastStatus = currentStatus;
+                statusChangeCounter++;
+                if (currentStatus) openStatusChangeCounter++; 
+                else closeStatusChangeCounter++;
+
+                var gamerangerStatusCheckPayload = new
+                {
+                    type = "gameranger_status_check",
+                    gamerangerId = user.GetUserId(),
+                    gamerangerStatus = currentStatus ? "open" : "closed"
+                };
+
+                 //Show "Please Wait..." panel for 3 seconds
+                this.Invoke(new Action(() =>
+                {
+                    tokenPanel.Visible = true;
+                    waitPanel.Visible = true; 
+                    openClosePanel.Visible = false; 
+                }));
+                Thread.Sleep(3000);
+
+
+                this.Invoke(new Action(() =>
+                {
+                    tokenPanel.Visible = true;
+                    waitPanel.Visible = true;
+                    openClosePanel.Visible = true;
+                    if (currentStatus) label6.Text = "Please Close the GameRanger";
+                    else label6.Text = "Please Open the GameRanger";
+                }));
+
+                Thread.Sleep(800);
+                string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(gamerangerStatusCheckPayload);
+                MessageBox.Show(jsonPayload);
+                await webSocketService.SendMessage(jsonPayload);
+            }
+        }
+
+        private async void CheckGameRangerStatus2(ClientAuthUpdatePayload clientAuthUpdatePayload)
         {
             var gameRangerProcesses = Process.GetProcessesByName("GameRanger");
             bool currentStatus = gameRangerProcesses.Length > 0;
@@ -168,54 +333,77 @@ namespace WindowsFormsApp1
                 timeperActionTimer.Stop();
                 lastStatus = currentStatus;
                 statusChangeCounter++;
-                if (currentStatus) openStatusChangeCounter++; else closeStatusChangeCounter++;
+                if (currentStatus) openStatusChangeCounter++;
+                else closeStatusChangeCounter++;
 
                 var gamerangerStatusCheckPayload = new
                 {
                     type = "gameranger_status_check",
-                    gamerangerId = this.userId,
+                    gamerangerId = user.GetUserId(),
                     gamerangerStatus = currentStatus ? "open" : "closed"
                 };
-                await Thread.Sleep(500);
+
+                //Show "Please Wait..." panel for 3 seconds
+                this.Invoke(new Action(() =>
+                {
+                    tokenPanel.Visible = true;
+                    waitPanel.Visible = true;
+                    openClosePanel.Visible = false;
+                }));
+                Thread.Sleep(3000);
+
+                //MessageBox.Show(Thread.CurrentThread.ToString());
+                // Show "Please Open/Close Gameranger" panel
+
+                this.Invoke(new Action(() =>
+                {
+                    tokenPanel.Visible = true;
+                    waitPanel.Visible = true;
+                    openClosePanel.Visible = true;
+                    if (currentStatus) label6.Text = "Please Close the GameRanger";
+                    else label6.Text = "Please Open the GameRanger";
+                }));
+                //MessageBox.Show(Thread.CurrentThread.Name.ToString());
+
+                //Thread.Sleep(800);
                 string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(gamerangerStatusCheckPayload);
+                MessageBox.Show(jsonPayload);
                 await webSocketService.SendMessage(jsonPayload);
 
-                // Show "Please Wait..." panel for 3 seconds
-                this.Invoke(new Action(() => { panel2.Visible = true; panel3.Visible = false; }));
-                await Task.Delay(3000);
-
-                // Show "Please Open/Close Gameranger" panel
-                this.Invoke(new Action(() => { panel2.Visible = false; panel3.Visible = true; }));
-
-                if (openStatusChangeCounter >= requiredAttempts && closeStatusChangeCounter >= requiredAttempts)
+                if (clientAuthUpdatePayload.RemainingOpenings <= 0 && clientAuthUpdatePayload.RemainingClosings <= 0)
                 {
-                    this.checkGameRangerTimer.Stop();
-                    MessageBox.Show("AUTH DONE");
+                    this.checkGameRangerTimer2.Stop();
+                    this.checkGameRangerTimer2.Stop();
+                    authenticationFinished = true;
+                    // I need a payload here that will tell me if the user is authenticated after reaching the 
+                    // requiredAttempts in Desktop                   
                 }
             }
         }
 
-
         private async void CheckIfAuthFailed()
         {
-            Action updateUI = () =>
+            if(authenticationFinished == false)
             {
-                this.panel1.Visible = false;
-                this.textBox1.Text = "";
-                button2.Text = "VALIDATE";
-                button2.BackColor = System.Drawing.ColorTranslator.FromHtml("#ff8000");
-            };
+                Action updateUI = () =>
+                {
+                    MessageBox.Show("Authentication Failed. Please try again.");
+                    this.tokenPanel.Visible = false;
+                    this.textBox1.Text = "";
+                    button2.Text = "VALIDATE";
+                    button2.BackColor = System.Drawing.ColorTranslator.FromHtml("#ff8000");
+                };
 
-            if (this.InvokeRequired)
-            {
-                this.Invoke(updateUI);
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(updateUI);
+                }
+                else
+                {
+                    updateUI();
+                }
+                await this.webSocketService.StopConnection();
             }
-            else
-            {
-                updateUI();
-            }
-
-            await this.webSocketService.StopConnection();
         }
 
 
@@ -226,8 +414,12 @@ namespace WindowsFormsApp1
 
             switch (type)
             {
-                case "client_auth_status":
+                case "client_auth_required":
                     return jObject.ToObject<ClientAuthPayload>();
+                case "client_auth_update":
+                    return jObject.ToObject<ClientAuthUpdatePayload>();
+                case "client_auth_complete":
+                    return jObject.ToObject<ClientAuthCompletePayload>();
                 case "gameranger_status_update":
                     return jObject.ToObject<ClientGamerangerStatusPayload>();
                 default:
@@ -247,6 +439,7 @@ namespace WindowsFormsApp1
             //SendGameUpdateStatus();
             //SendGameSettingsStatus();
             //mouseMonitor.Reset10SecondCPSData();
+            //mouseMonitor.CleanUpOldClicks();
         }
 
         private void Timer60s_Tick(object sender, EventArgs e)
@@ -268,7 +461,7 @@ namespace WindowsFormsApp1
 
             string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(cpsUpdatePayload);
 
-            //MessageBox.Show(jsonPayload);
+            MessageBox.Show(jsonPayload);
             await webSocketService.SendMessage(jsonPayload);
         }
 
@@ -277,23 +470,42 @@ namespace WindowsFormsApp1
             return (long)(date - new DateTime(1970, 1, 1)).TotalMilliseconds;
         }
 
-        private async void SendAuthPayload(int userId)
+        private async Task<FirstAuthentication> SendAuthPayload(int userId)
         {
             string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             string settingsPath = Path.Combine(appDataPath, "GameRanger", "GameRanger Prefs", "Settings");
 
             string email = await GetMostFrequentEmail(settingsPath);
-            var authPayload = new
+
+            var macAddressList =
+            (
+                from nic in NetworkInterface.GetAllNetworkInterfaces()
+                where nic.OperationalStatus == OperationalStatus.Up
+                && nic.GetPhysicalAddress().ToString() != String.Empty
+                select nic.GetPhysicalAddress().ToString()
+            ).ToArray();
+
+            FirstAuthentication authPayload = new FirstAuthentication
             {
-                type = "auth_payload_type",
-                email = email,
-                gamerangerId = userId,
-                token = textBox1.Text
+                Type = "auth_payload_type",
+                Email = email,
+                GameRangerId = userId,
+                Token = textBox1.Text,
+                KnownMacAddresses = macAddressList
             };
-            this.userId = userId;
-            string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(authPayload);
-            MessageBox.Show(jsonPayload);
-            await webSocketService.SendMessage(jsonPayload);
+
+            //string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(authPayload);
+            //MessageBox.Show(jsonPayload);
+            if (webSocketService != null)
+            {
+                this.userId = userId;
+                return authPayload;
+            }
+            else
+                MessageBox.Show("Please Open GameRanger");
+
+            return null;
+            //return authPayload;
         }
 
         private async Task<string> GetMostFrequentEmail(string filePath)
@@ -346,7 +558,7 @@ namespace WindowsFormsApp1
             var gamerangerUpdatePayload = new
             {
                 type = "gameranger_status_check",
-                gamerangerId = user.GetUserId(),
+                gamerangerId = this.userId,
                 gamerangerStatus = isGameRangerRunning ? "open" : "closed"
             };
 
@@ -448,8 +660,8 @@ namespace WindowsFormsApp1
 
         private void button1_Click(object sender, EventArgs e)
         { 
-            this.panel1.Visible = true;
-            this.panel2.Visible = false;
+            this.tokenPanel.Visible = true;
+            this.waitPanel.Visible = false;
         }
 
         private async void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -475,31 +687,9 @@ namespace WindowsFormsApp1
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
         const int SW_MINIMIZE = 6;
-
-        private void label2_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void pictureBox1_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void panel1_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
-
-        private void label4_Click(object sender, EventArgs e)
-        {
-
-        }
-
         private void button2_Click(object sender, EventArgs e)
         {
             var userId = user.ReadGameRangerUserId(button2, textBox1);
-            SendAuthPayload(userId);
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)
@@ -517,7 +707,38 @@ namespace WindowsFormsApp1
 
         }
 
+        private void label7_Click(object sender, EventArgs e) 
+        {
+
+        }
+
         private void panel3_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+
+        private void label2_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void pictureBox1_Click_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void panel1_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void label4_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label9_Click(object sender, EventArgs e)
         {
 
         }

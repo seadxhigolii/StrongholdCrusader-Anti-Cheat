@@ -97,9 +97,12 @@
     <Compile Include="Game.cs" />
     <Compile Include="MemoryReader.cs" />
     <Compile Include="Models\Base\BaseClientPayload.cs" />
+    <Compile Include="Models\Client\ClientAuthCompletePayload.cs" />
     <Compile Include="Models\Client\ClientAuthPayload.cs" />
+    <Compile Include="Models\Client\ClientAuthUpdatePayload.cs" />
     <Compile Include="Models\Client\ClientGamerangerStatusPayload.cs" />
     <Compile Include="Models\CurrentDate.cs" />
+    <Compile Include="Models\FirstAuthentication.cs" />
     <Compile Include="Models\Granary.cs" />
     <Compile Include="Models\Leaderboard.cs" />
     <Compile Include="Models\Population.cs" />

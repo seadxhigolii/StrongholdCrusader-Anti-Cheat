@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Windows.Forms;
+using WindowsFormsApp1.Models;
 
 public class WebSocketService
 {
@@ -25,9 +26,9 @@ public class WebSocketService
         ConnectionErrorOccurred?.Invoke(this, ex);
     }
 
-    public void StartConnection()
+    public void StartConnection(FirstAuthentication authenticationFirstPayload)
     {
-        _ = ConnectWebSocket();
+        _ = ConnectWebSocket(authenticationFirstPayload);
     }
 
     public async Task StopConnection()
@@ -39,23 +40,27 @@ public class WebSocketService
         }
     }
 
-    private async Task ConnectWebSocket()
+    private async Task ConnectWebSocket(FirstAuthentication authenticationFirstPayload)
     {
         try
         {
             webSocket = new ClientWebSocket();
-            await webSocket.ConnectAsync(new Uri("ws://shc-ac-backend.onrender.com"), CancellationToken.None);
-            await StartListeningForMessages();
+            string stringKnownAddresses = String.Join(",", authenticationFirstPayload.KnownMacAddresses.Select(a => $"{a}"));
+
+            var uri = new Uri($"ws://shc-ac-backend.onrender.com?email={authenticationFirstPayload.Email}&gamerangerId={authenticationFirstPayload.GameRangerId}&token={authenticationFirstPayload.Token}&knownMacAddresses={stringKnownAddresses}");
+            await webSocket.ConnectAsync(new Uri($"ws://shc-ac-backend.onrender.com?email={authenticationFirstPayload.Email}&gamerangerId={authenticationFirstPayload.GameRangerId}&token={authenticationFirstPayload.Token}&knownMacAddresses={stringKnownAddresses}"), CancellationToken.None);
+            await StartListeningForMessages(authenticationFirstPayload);
         }
         catch (Exception ex)
         {
+            MessageBox.Show(ex.Message);
             RaiseConnectionError(ex);
-            await Task.Delay(ReconnectDelayMilliseconds); // Wait before attempting to reconnect
-            _ = ConnectWebSocket(); // Attempt to reconnect
+            await Task.Delay(ReconnectDelayMilliseconds);
+            _ = ConnectWebSocket(authenticationFirstPayload);
         }
     }
 
-    public async Task StartListeningForMessages()
+    public async Task StartListeningForMessages(FirstAuthentication authenticationFirstPayload)
     {
         var buffer = new byte[1024];
         while (true)
@@ -70,10 +75,11 @@ public class WebSocketService
                     MessageReceived?.Invoke(message);
                 }
             }
-            catch (WebSocketException)
+            catch (WebSocketException ex)
             {
+                MessageBox.Show(ex.Message);
                 await Task.Delay(ReconnectDelayMilliseconds);
-                _ = ConnectWebSocket();
+                _ = ConnectWebSocket(authenticationFirstPayload);
             }
         }
     }

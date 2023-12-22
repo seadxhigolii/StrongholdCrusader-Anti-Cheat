@@ -35,17 +35,22 @@ namespace WindowsFormsApp1
             this.label2 = new System.Windows.Forms.Label();
             this.button1 = new System.Windows.Forms.Button();
             this.label3 = new System.Windows.Forms.Label();
-            this.panel1 = new System.Windows.Forms.Panel();
-            this.panel2 = new System.Windows.Forms.Panel();
-            this.panel3 = new System.Windows.Forms.Panel();
+            this.tokenPanel = new System.Windows.Forms.Panel();
+            this.waitPanel = new System.Windows.Forms.Panel();
+            this.openClosePanel = new System.Windows.Forms.Panel();
             this.label6 = new System.Windows.Forms.Label();
             this.label5 = new System.Windows.Forms.Label();
             this.button2 = new System.Windows.Forms.Button();
             this.label4 = new System.Windows.Forms.Label();
             this.textBox1 = new System.Windows.Forms.TextBox();
-            this.panel1.SuspendLayout();
-            this.panel2.SuspendLayout();
-            this.panel3.SuspendLayout();
+            this.label8 = new System.Windows.Forms.Label();
+            this.label7 = new System.Windows.Forms.Label();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.label9 = new System.Windows.Forms.Label();
+            this.tokenPanel.SuspendLayout();
+            this.waitPanel.SuspendLayout();
+            this.openClosePanel.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
             // label1
@@ -61,11 +66,12 @@ namespace WindowsFormsApp1
             this.label2.BackColor = System.Drawing.Color.Transparent;
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 13.25F);
             this.label2.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.label2.Location = new System.Drawing.Point(34, 40);
+            this.label2.Location = new System.Drawing.Point(81, 40);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(415, 22);
+            this.label2.Size = new System.Drawing.Size(330, 22);
             this.label2.TabIndex = 0;
-            this.label2.Text = "Stronghold Crusader Anti-Cheat System (SHC AC)";
+            this.label2.Text = "Stronghold Crusader Anti-Cheat System";
+            this.label2.Visible = false;
             this.label2.Click += new System.EventHandler(this.label2_Click);
             // 
             // button1
@@ -74,7 +80,7 @@ namespace WindowsFormsApp1
             this.button1.Cursor = System.Windows.Forms.Cursors.Hand;
             this.button1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.button1.ForeColor = System.Drawing.Color.White;
-            this.button1.Location = new System.Drawing.Point(99, 75);
+            this.button1.Location = new System.Drawing.Point(105, 75);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(277, 46);
             this.button1.TabIndex = 1;
@@ -93,44 +99,44 @@ namespace WindowsFormsApp1
             this.label3.Visible = false;
             this.label3.Click += new System.EventHandler(this.label3_Click);
             // 
-            // panel1
+            // tokenPanel
             // 
-            this.panel1.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("panel1.BackgroundImage")));
-            this.panel1.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
-            this.panel1.Controls.Add(this.panel2);
-            this.panel1.Controls.Add(this.button2);
-            this.panel1.Controls.Add(this.label4);
-            this.panel1.Controls.Add(this.textBox1);
-            this.panel1.Location = new System.Drawing.Point(0, 0);
-            this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(479, 180);
-            this.panel1.TabIndex = 2;
-            this.panel1.Visible = false;
-            this.panel1.Paint += new System.Windows.Forms.PaintEventHandler(this.panel1_Paint);
+            this.tokenPanel.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("tokenPanel.BackgroundImage")));
+            this.tokenPanel.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+            this.tokenPanel.Controls.Add(this.waitPanel);
+            this.tokenPanel.Controls.Add(this.button2);
+            this.tokenPanel.Controls.Add(this.label4);
+            this.tokenPanel.Controls.Add(this.textBox1);
+            this.tokenPanel.Location = new System.Drawing.Point(0, -1);
+            this.tokenPanel.Name = "tokenPanel";
+            this.tokenPanel.Size = new System.Drawing.Size(479, 181);
+            this.tokenPanel.TabIndex = 2;
+            this.tokenPanel.Visible = false;
+            this.tokenPanel.Paint += new System.Windows.Forms.PaintEventHandler(this.panel1_Paint);
             // 
-            // panel2
+            // waitPanel
             // 
-            this.panel2.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("panel2.BackgroundImage")));
-            this.panel2.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
-            this.panel2.Controls.Add(this.panel3);
-            this.panel2.Controls.Add(this.label5);
-            this.panel2.Location = new System.Drawing.Point(0, 0);
-            this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(479, 180);
-            this.panel2.TabIndex = 3;
-            this.panel2.Visible = false;
-            this.panel2.Paint += new System.Windows.Forms.PaintEventHandler(this.panel2_Paint);
+            this.waitPanel.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("waitPanel.BackgroundImage")));
+            this.waitPanel.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
+            this.waitPanel.Controls.Add(this.openClosePanel);
+            this.waitPanel.Controls.Add(this.label5);
+            this.waitPanel.Location = new System.Drawing.Point(0, 0);
+            this.waitPanel.Name = "waitPanel";
+            this.waitPanel.Size = new System.Drawing.Size(479, 180);
+            this.waitPanel.TabIndex = 3;
+            this.waitPanel.Visible = false;
+            this.waitPanel.Paint += new System.Windows.Forms.PaintEventHandler(this.panel2_Paint);
             // 
-            // panel3
+            // openClosePanel
             // 
-            this.panel3.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("panel3.BackgroundImage")));
-            this.panel3.Controls.Add(this.label6);
-            this.panel3.Location = new System.Drawing.Point(0, 0);
-            this.panel3.Name = "panel3";
-            this.panel3.Size = new System.Drawing.Size(479, 180);
-            this.panel3.TabIndex = 3;
-            this.panel3.Visible = false;
-            this.panel3.Paint += new System.Windows.Forms.PaintEventHandler(this.panel3_Paint);
+            this.openClosePanel.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("openClosePanel.BackgroundImage")));
+            this.openClosePanel.Controls.Add(this.label6);
+            this.openClosePanel.Location = new System.Drawing.Point(0, 0);
+            this.openClosePanel.Name = "openClosePanel";
+            this.openClosePanel.Size = new System.Drawing.Size(479, 180);
+            this.openClosePanel.TabIndex = 4;
+            this.openClosePanel.Visible = false;
+            this.openClosePanel.Paint += new System.Windows.Forms.PaintEventHandler(this.panel3_Paint);
             // 
             // label6
             // 
@@ -192,24 +198,87 @@ namespace WindowsFormsApp1
             this.textBox1.TabIndex = 0;
             this.textBox1.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
             // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.BackColor = System.Drawing.Color.Transparent;
+            this.label8.Font = new System.Drawing.Font("Microsoft Sans Serif", 12.25F);
+            this.label8.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
+            this.label8.Location = new System.Drawing.Point(81, 75);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(59, 20);
+            this.label8.TabIndex = 4;
+            this.label8.Text = "Label8";
+            this.label8.Visible = false;
+            // 
+            // label7
+            // 
+            this.label7.AutoSize = true;
+            this.label7.BackColor = System.Drawing.Color.Transparent;
+            this.label7.Font = new System.Drawing.Font("Microsoft Sans Serif", 12.25F);
+            this.label7.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
+            this.label7.Location = new System.Drawing.Point(81, 40);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(59, 20);
+            this.label7.TabIndex = 3;
+            this.label7.Text = "Label7";
+            this.label7.Visible = false;
+            this.label7.Click += new System.EventHandler(this.label7_Click);
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.BackColor = System.Drawing.Color.Transparent;
+            this.pictureBox1.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("pictureBox1.BackgroundImage")));
+            this.pictureBox1.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
+            this.pictureBox1.Location = new System.Drawing.Point(7, 151);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(17, 16);
+            this.pictureBox1.TabIndex = 5;
+            this.pictureBox1.TabStop = false;
+            this.pictureBox1.Visible = false;
+            this.pictureBox1.Click += new System.EventHandler(this.pictureBox1_Click_1);
+            // 
+            // label9
+            // 
+            this.label9.AutoSize = true;
+            this.label9.BackColor = System.Drawing.Color.Transparent;
+            this.label9.Cursor = System.Windows.Forms.Cursors.Default;
+            this.label9.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F);
+            this.label9.ForeColor = System.Drawing.SystemColors.ButtonFace;
+            this.label9.Location = new System.Drawing.Point(28, 151);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(66, 15);
+            this.label9.TabIndex = 6;
+            this.label9.Text = "Connected";
+            this.label9.Visible = false;
+            this.label9.Click += new System.EventHandler(this.label9_Click);
+            // 
             // Form1
             // 
             this.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("$this.BackgroundImage")));
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
             this.ClientSize = new System.Drawing.Size(477, 180);
-            this.Controls.Add(this.panel1);
+            this.Controls.Add(this.label9);
+            this.Controls.Add(this.pictureBox1);
+            this.Controls.Add(this.label8);
+            this.Controls.Add(this.tokenPanel);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.button1);
+            this.Controls.Add(this.label7);
             this.Controls.Add(this.label2);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.MaximizeBox = false;
             this.Name = "Form1";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Stronghold Crusader AC";
-            this.panel1.ResumeLayout(false);
-            this.panel1.PerformLayout();
-            this.panel2.ResumeLayout(false);
-            this.panel2.PerformLayout();
-            this.panel3.ResumeLayout(false);
-            this.panel3.PerformLayout();
+            this.tokenPanel.ResumeLayout(false);
+            this.tokenPanel.PerformLayout();
+            this.waitPanel.ResumeLayout(false);
+            this.waitPanel.PerformLayout();
+            this.openClosePanel.ResumeLayout(false);
+            this.openClosePanel.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -226,14 +295,18 @@ namespace WindowsFormsApp1
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.Panel panel1;
+        private System.Windows.Forms.Panel tokenPanel;
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Button button2;
-        private System.Windows.Forms.Panel panel2;
+        private System.Windows.Forms.Panel waitPanel;
         private System.Windows.Forms.Label label5;
-        private System.Windows.Forms.Panel panel3;
+        private System.Windows.Forms.Panel openClosePanel;
         private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.PictureBox pictureBox1;
+        private System.Windows.Forms.Label label9;
     }
 }
 
