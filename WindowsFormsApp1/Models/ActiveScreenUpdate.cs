@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 
 namespace WindowsFormsApp1.Models
 {
-    public class BaseClientPayload
+    public class ActiveScreenUpdate : BaseClientPayload
     {
-        [JsonProperty("type")]
-        public string Type { get; set; }
+        [JsonProperty("value")]
+        public int Value { get; set; }
     }
 }

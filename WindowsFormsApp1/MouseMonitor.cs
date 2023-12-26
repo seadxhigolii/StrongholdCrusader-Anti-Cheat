@@ -3,32 +3,37 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
-public class MouseMonitor
+public class MouseMonitor : IDisposable
 {
     private const int WH_MOUSE_LL = 14;
     private const int WM_LBUTTONDOWN = 0x0201;
-    private const int MAX_CPS = 10;
     private static IntPtr _hookID;
     private static LowLevelMouseProc _proc;
     private static List<DateTime> clickTimestamps = new List<DateTime>();
     private static Queue<DateTime> clicksLast10Seconds = new Queue<DateTime>();
     private int maxCPSLast10Seconds = 0;
     private DateTime firstClickTimestamp;
+    private DateTime lastClearingTime;
+    private TimeSpan clearingInterval = TimeSpan.FromSeconds(10); // Interval for clearing the data
+
     public event Action HighClickRateDetected;
 
     public double HighestCPSLast10Seconds
     {
         get { return maxCPSLast10Seconds; }
     }
+
     public double AverageCPSLast10Seconds
     {
         get
         {
             double totalDuration = (DateTime.Now - firstClickTimestamp).TotalSeconds;
-            totalDuration = totalDuration > 10 ? 10 : totalDuration; 
+            totalDuration = totalDuration > 10 ? 10 : totalDuration;
             double average = totalDuration == 0 ? 0 : (double)clicksLast10Seconds.Count / totalDuration;
-            return Math.Round(average, 1);  
+            return Math.Round(average, 1);
         }
     }
 
@@ -36,16 +41,26 @@ public class MouseMonitor
     {
         _proc = HookCallback;
         _hookID = SetHook(_proc);
+        lastClearingTime = DateTime.Now; // Initialize last clearing time
     }
 
     private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
         try
         {
+            DateTime now = DateTime.Now;
+
+            // Time-based clearing logic
+            if (now - lastClearingTime > clearingInterval)
+            {
+                clickTimestamps.Clear();
+                clicksLast10Seconds.Clear();
+                maxCPSLast10Seconds = 0;
+                lastClearingTime = now;
+            }
+
             if (nCode >= 0 && wParam == (IntPtr)WM_LBUTTONDOWN)
             {
-                DateTime now = DateTime.Now;
-
                 clickTimestamps.Add(now);
                 clickTimestamps.RemoveAll(ts => ts < now.AddSeconds(-1));
 
@@ -67,28 +82,20 @@ public class MouseMonitor
                 int currentCPS = clickTimestamps.Count;
                 if (currentCPS > maxCPSLast10Seconds)
                     maxCPSLast10Seconds = currentCPS;
-
-                if (currentCPS > MAX_CPS)
-                {
-                    HighClickRateDetected?.Invoke();
-                    clickTimestamps.Clear();
-                    clicksLast10Seconds.Clear();
-                    maxCPSLast10Seconds = 0;
-                }
             }
 
             return CallNextHookEx(_hookID, nCode, wParam, lParam);
         }
         catch (Exception ex)
         {
-            throw;
+            throw ex;
         }
     }
 
-
-    public void Reset10SecondCPSData()
+    public void Clear()
     {
         clicksLast10Seconds.Clear();
+        clickTimestamps.Clear();
         maxCPSLast10Seconds = 0;
     }
 

@@ -9,6 +9,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using System.Globalization;
 
 namespace WindowsFormsApp1
 {
@@ -30,20 +31,22 @@ namespace WindowsFormsApp1
 
         private const uint PROCESS_WM_READ = 0x0010;
 
-        public static int ReadMemoryInt(Process process, int address)
+        public static int ReadMemoryInt(Process process, string offsetHexString)
         {
-            IntPtr processHandle = process.Handle;
+            IntPtr baseAddress = process.MainModule.BaseAddress;
+            int offset = Convert.ToInt32(offsetHexString, 16); // Convert the hex string to an integer
+            IntPtr address = IntPtr.Add(baseAddress, offset); // Add the offset to the base address
+
             byte[] buffer = new byte[4]; // Buffer for a 4-byte integer
-            bool success = ReadProcessMemory(processHandle, new IntPtr(address), buffer, buffer.Length, out int bytesRead);
+            bool success = ReadProcessMemory(process.Handle, address, buffer, buffer.Length, out int bytesRead);
 
             // Logging and error checking
             if (!success)
             {
                 int error = Marshal.GetLastWin32Error();
-                MessageBox.Show($"ReadProcessMemory failed with error code {error}.");
+                //MessageBox.Show($"ReadProcessMemory failed with error code {error}.");
+                return 0;
             }
-
-            //MessageBox.Show($"Bytes read: {bytesRead}. Data: {BitConverter.ToString(buffer)}");
 
             if (bytesRead == 4)
             {
@@ -56,34 +59,49 @@ namespace WindowsFormsApp1
         }
 
 
+
+
         public static Process GetProcessByName(string processName)
         {
             Process[] processes = Process.GetProcessesByName(processName);
             if (processes.Length == 0)
             {
-                throw new InvalidOperationException($"Process '{processName}' not found.");
+                return null;
             }
 
             return processes[0];
         }
 
-        public static string ReadMemoryString(Process process, int address, int maxLength = 256)
+        public static string ReadMemoryString(Process process, string offsetHexString, int length)
         {
-            IntPtr processHandle = process.Handle;
-            byte[] buffer = new byte[maxLength];
-            bool success = ReadProcessMemory(processHandle, new IntPtr(address), buffer, buffer.Length, out int bytesRead);
+            IntPtr baseAddress = process.MainModule.BaseAddress;
+            int offset = Convert.ToInt32(offsetHexString, 16); // Convert the hex string to an integer
+            IntPtr address = IntPtr.Add(baseAddress, offset); // Add the offset to the base address
 
+            byte[] buffer = new byte[length]; // Buffer for the string
+            bool success = ReadProcessMemory(process.Handle, address, buffer, buffer.Length, out int bytesRead);
+
+            // Logging and error checking
             if (!success)
             {
-                throw new InvalidOperationException("Failed to read memory from process.");
+                int error = Marshal.GetLastWin32Error();
+                // MessageBox.Show($"ReadProcessMemory failed with error code {error}.");
+                return string.Empty;
             }
 
-            int nullTerminatorPos = Array.IndexOf(buffer, (byte)0);
-            if (nullTerminatorPos == -1)
+            // Find the null terminator index
+            int nullIndex = Array.IndexOf(buffer, (byte)0);
+            if (nullIndex >= 0)
             {
-                nullTerminatorPos = maxLength;
+                // Resize buffer to actual string length
+                Array.Resize(ref buffer, nullIndex);
             }
-            return System.Text.Encoding.ASCII.GetString(buffer, 0, nullTerminatorPos);
+
+            // Decode the byte array to a string
+            // Assuming the string is ASCII encoded. Change the encoding if necessary.
+            return System.Text.Encoding.ASCII.GetString(buffer);
         }
+
+
     }
 }

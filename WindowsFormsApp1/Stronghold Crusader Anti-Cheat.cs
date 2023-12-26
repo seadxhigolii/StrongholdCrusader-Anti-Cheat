@@ -18,6 +18,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using WindowsFormsApp1.Models;
 using WindowsFormsApp1.Models.Client;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace WindowsFormsApp1
 {
@@ -29,6 +30,7 @@ namespace WindowsFormsApp1
         private System.Windows.Forms.Timer timer10s = new System.Windows.Forms.Timer();
         private System.Windows.Forms.Timer timer60s = new System.Windows.Forms.Timer();
         private System.Windows.Forms.Timer timer1s = new System.Windows.Forms.Timer();
+        private System.Windows.Forms.Timer timerGameRunning = new System.Windows.Forms.Timer();
         public string type = "ongoing_game_update";
         public Granary granary;
         public int fearFactor;
@@ -47,6 +49,7 @@ namespace WindowsFormsApp1
         public int isFactualCounter = 0;
         public bool authenticationFinished = false;
         int timePerAction = 0;
+        private int lastActiveScreen = -1; 
         private string[] motivationalSentenceList = {
             "You're All Set for Fair Play!",
             "Play Fair, Play Hard!",
@@ -95,11 +98,11 @@ namespace WindowsFormsApp1
             user.UserIdSet += InitializeAfterUserIdSet;
 
 
-            //var procList = Process.GetProcesses().Where(process => process.ProcessName.Contains("Crusader"));
+            //var procList = Process.GetProcesses().Where(process => process.ProcessName.Contains("Stronghold Crusader"));
             //var path = "";
             //foreach (var process in procList)
             //{
-            //    path =Path.GetDirectoryName(process.MainModule.FileName);
+            //    path = Path.GetDirectoryName(process.MainModule.FileName);
             //    MessageBox.Show(path);
             //}
 
@@ -108,10 +111,14 @@ namespace WindowsFormsApp1
             //    using (var stream = File.OpenRead(path + "\\Stronghold Crusader.exe"))
             //    {
             //        MessageBox.Show(BitConverter.ToString(md5.ComputeHash(stream)).Replace("-", "").ToLower());
+            //        if (BitConverter.ToString(md5.ComputeHash(stream)).Replace("-", "").ToLower() == "20070495755f5adcb4e9245b25a4c13c")
+            //        {
+            //            MessageBox.Show("GameID Matches");
+            //        }
             //    }
             //}
 
-
+            //gameID : 20070495755f5adcb4e9245b25a4c13c
 
 
 
@@ -124,9 +131,9 @@ namespace WindowsFormsApp1
 
             mouseMonitor = new MouseMonitor();
 
-           
 
-            mouseMonitor.HighClickRateDetected += HandleHighClickRate;
+
+            //mouseMonitor.HighClickRateDetected += HandleHighClickRate;
             this.FormClosing += Form1_FormClosing;
         }
 
@@ -138,6 +145,7 @@ namespace WindowsFormsApp1
             webSocketService.StartConnection(authenticationFirstPayload);
             webSocketService.ConnectionErrorOccurred += WebSocketService_ConnectionErrorOccurred;
             webSocketService.MessageReceived += WebSocketService_MessageReceived;
+
             timer1s.Interval = 1000;
             timer1s.Tick += Timer1s_Tick;
             timer1s.Start();
@@ -164,14 +172,14 @@ namespace WindowsFormsApp1
             {
                 ShowWindow(activeWindowHandle, SW_MINIMIZE);
             }
-            MessageBox.Show("High click rate detected!");
+            //MessageBox.Show("High click rate detected!");
         }
 
         private void WebSocketService_MessageReceived(string message)
         {
             try
             {
-                MessageBox.Show($"MessageReceived: {message}");
+                //MessageBox.Show($"MessageReceived: {message}");
                 var payload = DeserializePayload(message);
                 ProcessPayload(payload);
             }
@@ -236,6 +244,17 @@ namespace WindowsFormsApp1
                 this.label9.Visible = true;
                 this.label9.Text = "Conntected to ID: " + this.userId.ToString();
                 this.button2.BackColor = System.Drawing.ColorTranslator.FromHtml("#ff8000");
+                this.authenticationFinished = true;
+                if(this.checkGameRangerTimer != null)
+                {
+                    this.checkGameRangerTimer.Stop();
+                    this.checkGameRangerTimer.Dispose();
+                }
+                if (this.checkGameRangerTimer2 != null)
+                {
+                    this.checkGameRangerTimer2.Stop();
+                    this.checkGameRangerTimer2.Dispose();
+                }
             };
             if (this.InvokeRequired)
             {
@@ -318,65 +337,67 @@ namespace WindowsFormsApp1
 
                 Thread.Sleep(800);
                 string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(gamerangerStatusCheckPayload);
-                MessageBox.Show(jsonPayload);
+                //MessageBox.Show(jsonPayload);
                 await webSocketService.SendMessage(jsonPayload);
             }
         }
 
         private async void CheckGameRangerStatus2(ClientAuthUpdatePayload clientAuthUpdatePayload)
         {
-            var gameRangerProcesses = Process.GetProcessesByName("GameRanger");
-            bool currentStatus = gameRangerProcesses.Length > 0;
-
-            if (lastStatus == null || currentStatus != lastStatus)
+            if(authenticationFinished != true)
             {
-                timeperActionTimer.Stop();
-                lastStatus = currentStatus;
-                statusChangeCounter++;
-                if (currentStatus) openStatusChangeCounter++;
-                else closeStatusChangeCounter++;
+                var gameRangerProcesses = Process.GetProcessesByName("GameRanger");
+                bool currentStatus = gameRangerProcesses.Length > 0;
 
-                var gamerangerStatusCheckPayload = new
+                if (lastStatus == null || currentStatus != lastStatus)
                 {
-                    type = "gameranger_status_check",
-                    gamerangerId = user.GetUserId(),
-                    gamerangerStatus = currentStatus ? "open" : "closed"
-                };
+                    //MessageBox.Show("Authentication Finished: " + authenticationFinished.ToString());
+                    timeperActionTimer.Stop();
+                    lastStatus = currentStatus;
+                    statusChangeCounter++;
+                    if (currentStatus) openStatusChangeCounter++;
+                    else closeStatusChangeCounter++;
 
-                //Show "Please Wait..." panel for 3 seconds
-                this.Invoke(new Action(() =>
-                {
-                    tokenPanel.Visible = true;
-                    waitPanel.Visible = true;
-                    openClosePanel.Visible = false;
-                }));
-                Thread.Sleep(3000);
+                    var gamerangerStatusCheckPayload = new
+                    {
+                        type = "gameranger_status_check",
+                        gamerangerId = user.GetUserId(),
+                        gamerangerStatus = currentStatus ? "open" : "closed"
+                    };
 
-                //MessageBox.Show(Thread.CurrentThread.ToString());
-                // Show "Please Open/Close Gameranger" panel
+                    //Show "Please Wait..." panel for 3 seconds
+                    this.Invoke(new Action(() =>
+                    {
+                        tokenPanel.Visible = true;
+                        waitPanel.Visible = true;
+                        openClosePanel.Visible = false;
+                    }));
+                    Thread.Sleep(3000);
 
-                this.Invoke(new Action(() =>
-                {
-                    tokenPanel.Visible = true;
-                    waitPanel.Visible = true;
-                    openClosePanel.Visible = true;
-                    if (currentStatus) label6.Text = "Please Close the GameRanger";
-                    else label6.Text = "Please Open the GameRanger";
-                }));
-                //MessageBox.Show(Thread.CurrentThread.Name.ToString());
+                    //MessageBox.Show(Thread.CurrentThread.ToString());
+                    // Show "Please Open/Close Gameranger" panel
 
-                //Thread.Sleep(800);
-                string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(gamerangerStatusCheckPayload);
-                MessageBox.Show(jsonPayload);
-                await webSocketService.SendMessage(jsonPayload);
+                    this.Invoke(new Action(() =>
+                    {
+                        tokenPanel.Visible = true;
+                        waitPanel.Visible = true;
+                        openClosePanel.Visible = true;
+                        if (currentStatus) label6.Text = "Please Close the GameRanger";
+                        else label6.Text = "Please Open the GameRanger";
+                    }));
+                    //MessageBox.Show(Thread.CurrentThread.Name.ToString());
 
-                if (clientAuthUpdatePayload.RemainingOpenings <= 0 && clientAuthUpdatePayload.RemainingClosings <= 0)
-                {
-                    this.checkGameRangerTimer2.Stop();
-                    this.checkGameRangerTimer2.Stop();
-                    authenticationFinished = true;
-                    // I need a payload here that will tell me if the user is authenticated after reaching the 
-                    // requiredAttempts in Desktop                   
+                    //Thread.Sleep(800);
+                    string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(gamerangerStatusCheckPayload);
+                    //MessageBox.Show(jsonPayload);
+                    await webSocketService.SendMessage(jsonPayload);
+
+                    if (clientAuthUpdatePayload.RemainingOpenings <= 0 && clientAuthUpdatePayload.RemainingClosings <= 0)
+                    {
+                        this.checkGameRangerTimer2.Stop();
+                        this.checkGameRangerTimer.Stop();
+                        authenticationFinished = true;
+                    }
                 }
             }
         }
@@ -391,6 +412,7 @@ namespace WindowsFormsApp1
                     this.tokenPanel.Visible = false;
                     this.textBox1.Text = "";
                     button2.Text = "VALIDATE";
+                    button2.Enabled = true;
                     button2.BackColor = System.Drawing.ColorTranslator.FromHtml("#ff8000");
                 };
 
@@ -402,7 +424,7 @@ namespace WindowsFormsApp1
                 {
                     updateUI();
                 }
-                await this.webSocketService.StopConnection();
+                //await this.webSocketService.StopConnection();
             }
         }
 
@@ -426,18 +448,25 @@ namespace WindowsFormsApp1
                     throw new InvalidOperationException("Unknown payload type.");
             }
         }
+        private void TimerGameRunning_Tick(object sender, EventArgs e)
+        {
+
+        }
 
         private void Timer1s_Tick(object sender, EventArgs e)
         {
-            //SendAuthPayload();
-        }        
+            CheckMemoryValue();
+        }
 
-        private void Timer10s_Tick(object sender, EventArgs e)
+        private async void Timer10s_Tick(object sender, EventArgs e)
         {
             var highestCPSInLast10Seconds = mouseMonitor.HighestCPSLast10Seconds;
-            //SendCpsUpdate(highestCPSInLast10Seconds);
-            //SendGameUpdateStatus();
-            //SendGameSettingsStatus();
+            SendGameUpdateStatus();
+            SendGameSettingsStatus();
+            //Task<DayOfWeek> taskA = Task.Run(() => DateTime.Today.DayOfWeek);
+            //taskA.ContinueWith(antecedent => Console.WriteLine($"Today is {antecedent.Result}."));
+            SendCpsUpdate(highestCPSInLast10Seconds);//.ContinueWith(_ => mouseMonitor.Clear());
+
             //mouseMonitor.Reset10SecondCPSData();
             //mouseMonitor.CleanUpOldClicks();
         }
@@ -455,13 +484,11 @@ namespace WindowsFormsApp1
                 userId = user.GetUserId(),  
                 maxCps = highestCps,
                 averageCps = mouseMonitor.AverageCPSLast10Seconds,
-                interval = 10,  
-                timestamp = ToUnixTimestamp(DateTime.Now)
+                interval = 10
             };
 
             string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(cpsUpdatePayload);
-
-            MessageBox.Show(jsonPayload);
+            //MessageBox.Show(jsonPayload);
             await webSocketService.SendMessage(jsonPayload);
         }
 
@@ -570,81 +597,187 @@ namespace WindowsFormsApp1
 
         private async void SendGameUpdateStatus()
         {
-            //string macAddresses = string.Empty;
-
-            //foreach (NetworkInterface nic in NetworkInterface.GetAllNetworkInterfaces())
-            //{
-            //    if (nic.OperationalStatus == OperationalStatus.Up)
-            //    {
-            //        macAddresses += nic.GetPhysicalAddress().ToString() + "\n" ;
-            //    }
-            //}
-
-            //MessageBox.Show(macAddresses);
             Process gameProcess = MemoryReader.GetProcessByName("Stronghold Crusader");
 
-            var payload = new
+            if (gameProcess == null)
             {
-                granary = new Granary
+                return;
+            }
+            else
+            {
+                //Cheese
+                int cheeseValue1 = MemoryReader.ReadMemoryInt(gameProcess, "9611F8");
+                int cheeseValue2 = MemoryReader.ReadMemoryInt(gameProcess, "962D8C");
+
+                //Bread
+                int breadValue1 = MemoryReader.ReadMemoryInt(gameProcess, "9611F4");
+                int breadValue2 = MemoryReader.ReadMemoryInt(gameProcess, "962D88");
+                int breadValue3 = MemoryReader.ReadMemoryInt(gameProcess, "164A250");
+
+                //Current Rations
+
+                int rationsValue1 = MemoryReader.ReadMemoryInt(gameProcess, "960D14");
+                int rationsValue2 = MemoryReader.ReadMemoryInt(gameProcess, "962E88");
+
+                int cheeseValue = cheeseValue1 != 0 ? cheeseValue1 : cheeseValue2;
+                int breadValue = breadValue1 != 0 ? breadValue1 : (breadValue2 != 0 ? breadValue2 : breadValue3);
+                int rationsValue = rationsValue1 != 0 ? rationsValue1 : rationsValue2;
+
+                var payload = new OngoingGameUpdate
                 {
-                    inventory = new Granary.Inventory
+                    Type = "ongoing_game_update",
+                    granary = new GranaryInfo
                     {
-                        apples = MemoryReader.ReadMemoryInt(gameProcess, 0x01A4A25C),
-                        meat = MemoryReader.ReadMemoryInt(gameProcess, 0x0164A258),
-                        cheese = MemoryReader.ReadMemoryInt(gameProcess, 0x0164A254),
-                        bread = MemoryReader.ReadMemoryInt(gameProcess, 0x01A4A250)
+                        inventory = new InventoryInfo
+                        {
+                            apples = MemoryReader.ReadMemoryInt(gameProcess, "961200"),
+                            meat = MemoryReader.ReadMemoryInt(gameProcess, "9611FC"),
+                            cheese = cheeseValue,
+                            bread = breadValue
+                        },
+                        currentRations = rationsValue
                     },
-                    currentRations = MemoryReader.ReadMemoryInt(gameProcess, 0x962DAC)
-                },
-                fearFactor = MemoryReader.ReadMemoryInt(gameProcess, 0x962E30),
-                activeTaxes = MemoryReader.ReadMemoryInt(gameProcess, 0x962E84),
-                currentDate = new CurrentDate
-                {
-                    month = MemoryReader.ReadMemoryInt(gameProcess, 0x97DFC4),
-                    year = MemoryReader.ReadMemoryInt(gameProcess, 0x97DFC8)
-                },
-                population = new Population
-                {
-                    count = MemoryReader.ReadMemoryInt(gameProcess, 0x962E7C),
-                    hovelsCount = MemoryReader.ReadMemoryInt(gameProcess, 0x1365898),
-                    popularity = MemoryReader.ReadMemoryInt(gameProcess, 0x960D5C)
-                },
-                leaderboard = new Leaderboard
-                {
-                    red = new Leaderboard.Player
+                    fearFactor = MemoryReader.ReadMemoryInt(gameProcess, "962E30"),
+                    activeTaxes = MemoryReader.ReadMemoryInt(gameProcess, "962E84"),
+                    currentDate = new CurrentDateInfo
                     {
-                        nickname = MemoryReader.ReadMemoryString(gameProcess, 0x1364FD6),
-                        gold = MemoryReader.ReadMemoryInt(gameProcess, 0x961208),
-                        troopsCount = MemoryReader.ReadMemoryInt(gameProcess, 0x961238)
+                        month = MemoryReader.ReadMemoryInt(gameProcess, "97DFC4"),
+                        year = MemoryReader.ReadMemoryInt(gameProcess, "97DFC8")
                     },
-                    orange = new Leaderboard.Player
+                    population = new PopulationInfo
                     {
-                        nickname = MemoryReader.ReadMemoryString(gameProcess, 0x1365030),
-                        gold = MemoryReader.ReadMemoryInt(gameProcess, 0x964BFC),
-                        troopsCount = MemoryReader.ReadMemoryInt(gameProcess, 0x964C2C)
+                        count = MemoryReader.ReadMemoryInt(gameProcess, "962E7C"),
+                        max = MemoryReader.ReadMemoryInt(gameProcess, "960D70"),
+                        popularity = MemoryReader.ReadMemoryInt(gameProcess, "960D5C")
+                    },
+                    leaderboard = new LeaderboardInfo
+                    {
+                        red = new PlayerInfo
+                        {
+                            nickname = MemoryReader.ReadMemoryString(gameProcess, "1364FD6", 100),
+                            gold = MemoryReader.ReadMemoryInt(gameProcess, "961208"),
+                            troopsCount = MemoryReader.ReadMemoryInt(gameProcess, "961238"),
+                            lordHp = MemoryReader.ReadMemoryInt(gameProcess, "137D3B8")
+                        },
+                        orange = new PlayerInfo
+                        {
+                            nickname = MemoryReader.ReadMemoryString(gameProcess, "1365030", 100),
+                            gold = MemoryReader.ReadMemoryInt(gameProcess, "964BFC"),
+                            troopsCount = MemoryReader.ReadMemoryInt(gameProcess, "964C2C"),
+                            lordHp = MemoryReader.ReadMemoryInt(gameProcess, "137DCD8")
+                        }
                     }
-                }
-            };
-            string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(payload);
-            MessageBox.Show(jsonPayload);
-            await webSocketService.SendMessage(jsonPayload);
+                };
+
+                string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(payload);
+                //MessageBox.Show(jsonPayload);
+                await webSocketService.SendMessage(jsonPayload);
+            }
         }
+
 
         private async void SendGameSettingsStatus()
         {
             Process gameProcess = MemoryReader.GetProcessByName("Stronghold Crusader");
-
-            var payload = new
+            if (gameProcess == null)
             {
-                gold = MemoryReader.ReadMemoryInt(gameProcess, 0x1362CA4),
-                pt = MemoryReader.ReadMemoryInt(gameProcess, 0x1364C84),
-                gameSpeed = MemoryReader.ReadMemoryInt(gameProcess, 0x1362B90),
-                gameType = MemoryReader.ReadMemoryInt(gameProcess, 0x1362B94)
-            };
-            string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(payload);
-            MessageBox.Show(jsonPayload);
-            await webSocketService.SendMessage(jsonPayload);
+                return;
+            }
+            else
+            {
+                var payload = new GameSettings
+                {
+                    Type = "game_settings_update",
+                    Gold = MemoryReader.ReadMemoryInt(gameProcess, "1362CA4"),
+                    Pt = MemoryReader.ReadMemoryInt(gameProcess, "1364C84"),
+                    GameSpeed = MemoryReader.ReadMemoryInt(gameProcess, "1362B90"),
+                    GameType = MemoryReader.ReadMemoryInt(gameProcess, "1362B94"),
+                    MapName = MemoryReader.ReadMemoryString(gameProcess, "1361924",100)
+                };
+                string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(payload);
+                //MessageBox.Show(jsonPayload);
+                await webSocketService.SendMessage(jsonPayload);
+            }
         }
+
+        private async void CheckMemoryValue()
+        {
+            Process gameProcess = MemoryReader.GetProcessByName("Stronghold Crusader");
+            if (gameProcess == null)
+            {
+                return;
+            }
+
+            int currentValue = MemoryReader.ReadMemoryInt(gameProcess, "1362CA4");
+            if (currentValue != lastActiveScreen)
+            {
+                if (currentValue == 30)
+                {
+                    var endGamepPayload = new EndGameStats
+                    {
+                        Type = "end_game_stats",
+                        Red = new Player
+                        {
+                            GoldAcquired = MemoryReader.ReadMemoryInt(gameProcess, "13652B4"),
+                            FoodProduced = MemoryReader.ReadMemoryInt(gameProcess, "1365480"),
+                            WoodProduced = MemoryReader.ReadMemoryInt(gameProcess, "13654EC"),
+                            StoneProduced = MemoryReader.ReadMemoryInt(gameProcess, "13654C8"),
+                            IronProduced = MemoryReader.ReadMemoryInt(gameProcess, "13654A4"),
+                            WeaponsProduced = MemoryReader.ReadMemoryInt(gameProcess, "1365548"),
+                            TroopsProduced = MemoryReader.ReadMemoryInt(gameProcess, "13655D8"),
+                            HighestPopulation = MemoryReader.ReadMemoryInt(gameProcess, "13652D6"),
+                            EnemyBuildingsRazed = MemoryReader.ReadMemoryInt(gameProcess, "136545C"),
+                            BuildingsLost = MemoryReader.ReadMemoryInt(gameProcess, "136556C")
+                        },
+                        Orange = new Player
+                        {
+                            GoldAcquired = MemoryReader.ReadMemoryInt(gameProcess, "13652B8"),
+                            TroopsLost = MemoryReader.ReadMemoryInt(gameProcess, "1365340"),
+                            TroopsKilled = MemoryReader.ReadMemoryInt(gameProcess, "1365360"),
+                            FoodProduced = MemoryReader.ReadMemoryInt(gameProcess, "1365484"),
+                            WoodProduced = MemoryReader.ReadMemoryInt(gameProcess, "13654F0"),
+                            StoneProduced = MemoryReader.ReadMemoryInt(gameProcess, "13654CC"),
+                            IronProduced = MemoryReader.ReadMemoryInt(gameProcess, "13654A8"),
+                            WeaponsProduced = MemoryReader.ReadMemoryInt(gameProcess, "136554C"),
+                            TroopsProduced = MemoryReader.ReadMemoryInt(gameProcess, "13655DC"),
+                            HighestPopulation = MemoryReader.ReadMemoryInt(gameProcess, "13652D8"),
+                            EnemyBuildingsRazed = MemoryReader.ReadMemoryInt(gameProcess, "1365460"),
+                            BuildingsLost = MemoryReader.ReadMemoryInt(gameProcess, "1365570")
+                        }
+                    };
+
+                    string endGameJsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(endGamepPayload);
+                    //MessageBox.Show(jsonPayload);
+                    await webSocketService.SendMessage(endGameJsonPayload);
+                }
+                lastActiveScreen = currentValue;
+                SendActiveScreenUpdateStatus();
+            }
+        }
+
+
+        private async void SendActiveScreenUpdateStatus()
+        {
+            Process gameProcess = MemoryReader.GetProcessByName("Stronghold Crusader");
+            if (gameProcess == null)
+            {
+                return;
+            }
+            else
+            {
+                var payload = new ActiveScreenUpdate
+                { 
+                    Type = "active_screen_update",
+                    Value = MemoryReader.ReadMemoryInt(gameProcess, "916A28")
+                };
+                string jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(payload);
+                //MessageBox.Show(jsonPayload);
+                await webSocketService.SendMessage(jsonPayload);
+            }
+        }
+
+        
+
 
         private bool IsApplicationRunning(string processName)
         {

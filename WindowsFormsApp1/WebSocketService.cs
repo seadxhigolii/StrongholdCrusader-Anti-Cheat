@@ -46,9 +46,10 @@ public class WebSocketService
         {
             webSocket = new ClientWebSocket();
             string stringKnownAddresses = String.Join(",", authenticationFirstPayload.KnownMacAddresses.Select(a => $"{a}"));
-
-            var uri = new Uri($"ws://shc-ac-backend.onrender.com?email={authenticationFirstPayload.Email}&gamerangerId={authenticationFirstPayload.GameRangerId}&token={authenticationFirstPayload.Token}&knownMacAddresses={stringKnownAddresses}");
-            await webSocket.ConnectAsync(new Uri($"ws://shc-ac-backend.onrender.com?email={authenticationFirstPayload.Email}&gamerangerId={authenticationFirstPayload.GameRangerId}&token={authenticationFirstPayload.Token}&knownMacAddresses={stringKnownAddresses}"), CancellationToken.None);
+            //ws://shc-ac-backend.onrender.com
+            //var uri = new Uri($"ws://shc-ac-backend.onrender.com?email={authenticationFirstPayload.Email}&gamerangerId={authenticationFirstPayload.GameRangerId}&token={authenticationFirstPayload.Token}&knownMacAddresses={stringKnownAddresses}");
+            //https://ad1d-2a02-1810-3e2e-8900-cd9d-481e-95f5-70e9.ngrok-free.app
+            await webSocket.ConnectAsync(new Uri($"ws://ad1d-2a02-1810-3e2e-8900-cd9d-481e-95f5-70e9.ngrok-free.app?email={authenticationFirstPayload.Email}&gamerangerId={authenticationFirstPayload.GameRangerId}&token={authenticationFirstPayload.Token}&knownMacAddresses={stringKnownAddresses}"), CancellationToken.None);
             await StartListeningForMessages(authenticationFirstPayload);
         }
         catch (Exception ex)
@@ -86,10 +87,19 @@ public class WebSocketService
 
     public async Task SendMessage(string payload)
     {
-        if (webSocket.State == WebSocketState.Open)
+        try
         {
-            var buffer = Encoding.UTF8.GetBytes(payload);
-            await webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+            if (webSocket.State == WebSocketState.Open)
+            {
+                var buffer = Encoding.UTF8.GetBytes(payload);
+                await webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+            }
         }
+        catch (Exception e)
+        {
+            MessageBox.Show("SHC AC failed to send the message: " + e.Message);
+            throw e;
+        }
+       
     }
 }
